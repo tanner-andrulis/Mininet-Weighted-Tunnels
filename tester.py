@@ -105,14 +105,16 @@ class Intersection(Topo):
             for dest in range(self.num_hosts):
                 if source == dest:
                     continue
+                c_args = f'-t {iperf_duration} -b {bw}'
+                c_args += f' -i 1 > {out_dir}/c_h{source}-h{dest}.txt 2>&1'
+                s_args = f' -i 1 > {out_dir}/s_h{source}-h{dest}.txt 2>&1'
                 c_cmd, s_cmd = get_iperf_commands(
                     net=net,
                     client_num=source,
                     server_num=dest,
-                    iperf_client_args=f'-t {iperf_duration} -b {bw}'
+                    iperf_server_args=s_args,
+                    iperf_client_args=c_args,
                     )
-                c_cmd += f' -i 1 > {out_dir}/c_h{source}-h{dest}.txt 2>&1 &'
-                s_cmd += f' -i 1 > {out_dir}/s_h{source}-h{dest}.txt 2>&1 &'
                 c_cmds.append((source, c_cmd))
                 s_cmds.append((dest, s_cmd))
 
