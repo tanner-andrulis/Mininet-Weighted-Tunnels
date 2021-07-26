@@ -2,8 +2,8 @@ from typing import Tuple, List
 from mininet.net import Mininet
 import os
 
-# For each host's iperf port modification. Must match mod_iperf_ports.c!!
-MAX_ROUTES_PER_FLOW = 16
+# For each host's iperf port modification. Must match weighted_tunnels.c!!
+MAX_TUNNELS_PER_FLOW = 16
 MAX_FLOWS = 128  # per host!
 DEFAULT_RECV_START_PORT = 10000
 DEFAULT_SEND_START_PORT = 20000
@@ -144,8 +144,8 @@ def assert_start_ports(recv_start_port: int, send_start_port: int) -> None:
     assert recv_start_port + MAX_FLOWS < send_start_port, \
         'send_start_port must be higher! Sending & recieving ports ' \
         'will overlap!'
-    assert send_start_port + MAX_FLOWS * MAX_ROUTES_PER_FLOW < 65536, \
-        'send_start_port + MAX_FLOWS * MAX_ROUTES_PER_FLOW >= 65536! ' \
+    assert send_start_port + MAX_FLOWS * MAX_TUNNELS_PER_FLOW < 65536, \
+        'send_start_port + MAX_FLOWS * MAX_TUNNELS_PER_FLOW >= 65536! ' \
         'Insufficient space for iperf sessions.'
 
 
@@ -171,7 +171,7 @@ def get_iperf_ports(
     return client_port, server_port
 
 
-def mod_iperf_ports(
+def weight_tunnels(
         net: Mininet,
         host_num: int,
         switch_num: int = None,
@@ -182,7 +182,7 @@ def mod_iperf_ports(
     """
     Mangles source/destination ports of UDP packets being exchanged by
     this host.
-    Requires a mod_iperf_ports executable in the current path.
+    Requires a weighted_tunnels executable in the current path.
 
     params:
         host_num: Host to mod ports
@@ -202,7 +202,7 @@ def mod_iperf_ports(
     ip = get_ip(net, host_num, switch_num)
     if False:
         cmd = f'valgrind --leak-check=full ' \
-              f'--log-file=iperf_results/d{host_num}.val ./mod_iperf_ports ' \
+              f'--log-file=iperf_results/d{host_num}.val ./weighted_tunnels ' \
               f'-i {ip_to_int(ip)} ' \
               f'-w {weight_path} ' \
               f'-r {recv_start_port} ' \
@@ -210,7 +210,7 @@ def mod_iperf_ports(
               f'-q 58 ' \
               f'-v > iperf_results/d{host_num}.txt &'
     elif False:
-        cmd = f'./mod_iperf_ports ' \
+        cmd = f'./weighted_tunnels ' \
               f'-i {ip_to_int(ip)} ' \
               f'-w {weight_path} ' \
               f'-r {recv_start_port} ' \
@@ -218,7 +218,7 @@ def mod_iperf_ports(
               f'-q 58 ' \
               f'-v > iperf_results/d{host_num}.txt &'
     else:
-        cmd = f'./mod_iperf_ports ' \
+        cmd = f'./weighted_tunnels ' \
               f'-i {ip_to_int(ip)} ' \
               f'-w {weight_path} ' \
               f'-r {recv_start_port} ' \
@@ -242,7 +242,6 @@ def get_iperf_commands(
     server_num: int,
     iperf_client_args: str = '',
     iperf_server_args: str = '',
-    client_switch_num: int = None,
     server_switch_num: int = None
 ) -> str:
     """
@@ -257,46 +256,40 @@ def get_iperf_commands(
         iperf_client_args: Arguments for the iperf client
         iperf_server_args: Arguemnts for the iperf server
         port_range_min: Minimum port used for iperf sessions.
-        client_switch_num:
-            Switch the client is connected to. If not set, assumed to be
-            the same switch number as the client.
         server_switch_num:
             Switch the server is connected to. If not set, assumed to be
             the same switch number as the client.
     """
     clientport, serverport = get_iperf_ports(client_num, server_num)
-    client_ip = get_ip(net, client_num, client_switch_num)
     server_ip = get_ip(net, server_num, server_switch_num)
-    #  f'--cport {clientport} ' \ REPLACED WITH -B
-    #  f'-B {client_ip}:{clientport} ' \
     client_command = f'iperf3 -c {server_ip} ' \
                      f'-p {serverport} ' \
                      f'--cport {clientport} ' \
                      f'-u -4 ' \
-                     f'{iperf_client_args}'
+                     f'{iperf_client_args} & '
     server_command = f'iperf3 -s -4 ' \
                      f'-p {serverport} ' \
-                     f'{iperf_server_args}'
+                     f'{iperf_server_args} & '
     return client_command, server_command
 
 
-def set_route_weights(
+def set_tunnel_weights(
     host_num: int,
     weights: List[List[float]],
     dummy_self_row: bool = True,
     weight_path: str = None,
 ) -> None:
     """
-    Sets route weights for a given host. Must have a port modifying client
+    Sets tunnel weights for a given host. Must have a port modifying client
     running on that host.
     params:
-        host_num: Host for which to set route weights.
+        host_num: Host for which to set tunnel weights.
         weights: List of lists of weights. The top-level list holds one sublist
-                 for each host. Each sublist holds a float for each route.
+                 for each host. Each sublist holds a float for each tunnel.
                       e.g. We're sending a message to host 0. Host 0 would
                            like its messages to host 1 to be sent over three
-                           routes in ratios 5:6:7. Host 0 would like its
-                           messages to host 1 to be sent over two routes in 
+                           tunnels in ratios 5:6:7. Host 0 would like its
+                           messages to host 1 to be sent over two tunnels in 
                            ratios 2:3.
                            The lists are formatted as follows:
                            [
@@ -320,9 +313,9 @@ def set_route_weights(
     os.rename(weight_path + '.tmp', weight_path)
 
 
-def add_flow_route(
+def add_flow_tunnel(
     net: Mininet,
-    route_num: int,
+    tunnel_num: int,
     switch_num: int,
     out_switch: int,
     from_host: int,
@@ -333,11 +326,11 @@ def add_flow_route(
     send_start_port: int = DEFAULT_SEND_START_PORT
 ) -> None:
     """
-    Adds an Open vSwitch flow to a switch with route number route_num. Used
-    when port modification adds multiple routes.
+    Adds an Open vSwitch flow to a switch with tunnel number tunnel_num. Used
+    when port modification adds multiple tunnels.
 
     params:
-        route_num: Route number for this flow.
+        tunnel_num: Tunnel number for this flow.
         switch_num: Switch to which to add the group.
         out_switch: Output switch number
         from_host: Filter originating the traffic. Leave at None to include
@@ -363,12 +356,12 @@ def add_flow_route(
                 OpenFlow 15 format. If "from_host" or "to_host" is
                 specified, this filter cannot include nw_src or nw_dst
                 respectively.
-        recv_start_port: Number route to use
+        recv_start_port: Number tunnel to use
         recv_start_port: Start port for receiver iperf sessions
         send_start_port: Start port for sender iperf sessions
     """
     assert_start_ports(recv_start_port, send_start_port)
-    sport = send_start_port + to_host * MAX_ROUTES_PER_FLOW + route_num
+    sport = send_start_port + to_host * MAX_TUNNELS_PER_FLOW + tunnel_num
     for proto in ['udp']:
         filter = f'{proto},{proto}_src={sport}'
         add_flow(

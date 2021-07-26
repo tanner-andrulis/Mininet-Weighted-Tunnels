@@ -1,4 +1,3 @@
-// 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -25,17 +24,17 @@
 // =================================================================================================
 // MAKE SURE THESE ARE THE SAME AS IN mod_ports.py
 // Weights / cur allocs
-#define MAX_ROUTES_PER_FLOW 16
+#define MAX_TUNNELS_PER_FLOW 16
 #define MAX_FLOWS 128
-double weights[MAX_FLOWS][MAX_ROUTES_PER_FLOW];
-double curr_allocs[MAX_FLOWS][MAX_ROUTES_PER_FLOW];
+double weights[MAX_FLOWS][MAX_TUNNELS_PER_FLOW];
+double curr_allocs[MAX_FLOWS][MAX_TUNNELS_PER_FLOW];
 
 // For message parsing
 // Assuming at most 32 characters per flow
-#define MAX_WEIGHT_MESSAGE_SIZE MAX_ROUTES_PER_FLOW*MAX_FLOWS*32
+#define MAX_WEIGHT_MESSAGE_SIZE MAX_TUNNELS_PER_FLOW*MAX_FLOWS*32
 int weight_ready = 0;
 char message_buff[MAX_WEIGHT_MESSAGE_SIZE + 1];
-double weights_in_progress[MAX_FLOWS][MAX_ROUTES_PER_FLOW];
+double weights_in_progress[MAX_FLOWS][MAX_TUNNELS_PER_FLOW];
 
 
 #define QUEUE_MAXLEN 65536 // 64k
@@ -133,9 +132,9 @@ int parse_args(int argc, char **argv) {
 		printf("Send and recv start port too close together! Send start port must be > recv_start_port + %d.\n", MAX_FLOWS);
 		return -1;
 	}
-	if(((int) send_start_port) + MAX_FLOWS * MAX_ROUTES_PER_FLOW >= 65535)
+	if(((int) send_start_port) + MAX_FLOWS * MAX_TUNNELS_PER_FLOW >= 65535)
 	{
-		printf("Send start port too high! Send start port must be < 65535 - %d.\n", MAX_ROUTES_PER_FLOW * MAX_FLOWS);
+		printf("Send start port too high! Send start port must be < 65535 - %d.\n", MAX_TUNNELS_PER_FLOW * MAX_FLOWS);
 		return -1;
 	}
 	if(!weight_file)
@@ -144,15 +143,15 @@ int parse_args(int argc, char **argv) {
 		return -1;
 	}
 	printf("Intercepting packets on queue %d.\n", queue_num);
-	printf("Source ports %d <= sport <= %d will be modified.\n", send_start_port, send_start_port + MAX_FLOWS * MAX_ROUTES_PER_FLOW);
+	printf("Source ports %d <= sport <= %d will be modified.\n", send_start_port, send_start_port + MAX_FLOWS * MAX_TUNNELS_PER_FLOW);
 	printf("Iperf session from host M to host N should use source port %d + N and destination port %d + M.\n", send_start_port, recv_start_port);
 	printf("Packets from IP address %d are outgoing.\n", my_ip);
-	printf("	Source port %d + N will be mapped to %d + N * %d + Route #. Destination port unchanged.\n", send_start_port, send_start_port, MAX_ROUTES_PER_FLOW);
+	printf("	Source port %d + N will be mapped to %d + N * %d + Tunnel #. Destination port unchanged.\n", send_start_port, send_start_port, MAX_TUNNELS_PER_FLOW);
 	printf("Other packets are incoming.\n");
-	printf("	Source port %d + N * %d + Route # will be mapped to %d + N. Destination port unchanged.\n", send_start_port, MAX_ROUTES_PER_FLOW, send_start_port);
+	printf("	Source port %d + N * %d + Tunnel # will be mapped to %d + N. Destination port unchanged.\n", send_start_port, MAX_TUNNELS_PER_FLOW, send_start_port);
 	printf("Calculate checksum: %d\n", calc_checksum);
-	printf("Verbose: %d\n", verbose);
 	printf("Weight file: %s\n", weight_file);
+	printf("Verbose: %d\n", verbose);
 	return 0;
 }
 
@@ -177,16 +176,16 @@ void parse_weight_message(char* lines[], int line_count)
 		if(!lines[i][0]) continue;
 		printf("Line: %s\n", lines[i]);
 		char* weight = strtok(lines[i], ",");
-		while(j < MAX_ROUTES_PER_FLOW)
+		while(j < MAX_TUNNELS_PER_FLOW)
 		{
 			if(!weight) break;
 			weights_in_progress[i][j++] = atof(weight);
-			if(verbose) printf("Destination host %d route %d: Weight %lf\n", i, j - 1, weights_in_progress[i][j - 1]);
+			if(verbose) printf("Destination host %d tunnel %d: Weight %lf\n", i, j - 1, weights_in_progress[i][j - 1]);
 			weight = strtok(NULL, ",");
 		}
 		if(strtok(NULL, ","))
 		{
-			printf("Too many weights in line! Can only give %d weights.", MAX_ROUTES_PER_FLOW);
+			printf("Too many weights in line! Can only give %d weights.", MAX_TUNNELS_PER_FLOW);
 			exit(-1);
 		}
 	}
@@ -245,7 +244,7 @@ unsigned short pick_next_bucket(unsigned short dnum)
 	double min = 1e+300;
 	int min_ind = -1;
 	printf("Dnum: %d\n", dnum);
-	for(int i = 0; i < MAX_ROUTES_PER_FLOW; i++)
+	for(int i = 0; i < MAX_TUNNELS_PER_FLOW; i++)
 		if(curr_allocs[dnum][i] < min && weights[dnum][i] > 0)
 		{
 			min_ind = i;
@@ -253,7 +252,7 @@ unsigned short pick_next_bucket(unsigned short dnum)
 		}
 	
 	// Put everyone back near 0 so we don't overflow
-	for(int i = 0; i < MAX_ROUTES_PER_FLOW; i++) curr_allocs[dnum][i] -= min;
+	for(int i = 0; i < MAX_TUNNELS_PER_FLOW; i++) curr_allocs[dnum][i] -= min;
 	// Tax the one picked porportional to inverse of weight
 	if(min_ind == -1)
 	{
@@ -270,17 +269,17 @@ unsigned short port_translate(unsigned short sport, unsigned int saddr)
 	// and source address.
 
 	if(sport < send_start_port || 
-	   sport > ((int) send_start_port) + MAX_FLOWS * MAX_ROUTES_PER_FLOW)
+	   sport > ((int) send_start_port) + MAX_FLOWS * MAX_TUNNELS_PER_FLOW)
 	   {
 		   return sport;
 	   }
 
 	// Input rule
 	if(saddr != my_ip)
-		return ((sport - send_start_port) / MAX_ROUTES_PER_FLOW) + send_start_port;
+		return ((sport - send_start_port) / MAX_TUNNELS_PER_FLOW) + send_start_port;
 	// Output rule
 	unsigned short dnum = sport - send_start_port;
-	return send_start_port + (unsigned short) pick_next_bucket(dnum) + dnum * MAX_ROUTES_PER_FLOW;
+	return send_start_port + (unsigned short) pick_next_bucket(dnum) + dnum * MAX_TUNNELS_PER_FLOW;
 }
 
 // =================================================================================================
@@ -453,14 +452,14 @@ int main(int argc, char **argv)
 // recv_start_port +  3: Messages from destination 3
 // ...
 // ...
-// send_start_port + 0 * MAX_ROUTES_PER_FLOW + 0: Destination 0 route 0
-// send_start_port + 0 * MAX_ROUTES_PER_FLOW + 1: Destination 0 route 1
-//                 + 0 * MAX_ROUTES_PER_FLOW + 2: Destination 0 route 2
-//                 + 0 * MAX_ROUTES_PER_FLOW + 3: Destination 0 route 3
+// send_start_port + 0 * MAX_TUNNELS_PER_FLOW + 0: Destination 0 tunnel 0
+// send_start_port + 0 * MAX_TUNNELS_PER_FLOW + 1: Destination 0 tunnel 1
+//                 + 0 * MAX_TUNNELS_PER_FLOW + 2: Destination 0 tunnel 2
+//                 + 0 * MAX_TUNNELS_PER_FLOW + 3: Destination 0 tunnel 3
 // ...
-// send_start_port + 1 * MAX_ROUTES_PER_FLOW - 1: Destination 0 route N
-// send_start_port + 1 * MAX_ROUTES_PER_FLOW + 0: Destination 1 route 0
-// send_start_port + 1 * MAX_ROUTES_PER_FLOW + 1: Destination 1 route 1
+// send_start_port + 1 * MAX_TUNNELS_PER_FLOW - 1: Destination 0 tunnel N
+// send_start_port + 1 * MAX_TUNNELS_PER_FLOW + 0: Destination 1 tunnel 0
+// send_start_port + 1 * MAX_TUNNELS_PER_FLOW + 1: Destination 1 tunnel 1
 // ...
 // 
 //
@@ -468,7 +467,7 @@ int main(int argc, char **argv)
 // e.g. For the following values:
 //      recv_start port = 5000
 //      send_start_port = 10000
-//      MAX_ROUTES_PER_FLOW 8
+//      MAX_TUNNELS_PER_FLOW 8
 //
 //      OUTPUT CHAIN
 //      Host 0 iperf sessions send out:

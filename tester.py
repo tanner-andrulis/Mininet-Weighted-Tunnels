@@ -3,8 +3,8 @@
 from mininet.net import Mininet
 from mininet.topo import Topo
 from mininet.log import setLogLevel
-from mod_ports import add_flow_route, get_iperf_commands, connect_host
-from mod_ports import mod_iperf_ports, set_route_weights
+from weighted_tunnels import add_flow_tunnel, get_iperf_commands, connect_host
+from weighted_tunnels import weight_tunnels, set_tunnel_weights
 import os
 import time
 import re
@@ -13,7 +13,7 @@ import re
 IPERF_BW_REGEX = r'\[  \d\]\s*0.\d+\s*\-\s*([\d\.]+).*?([\d\.]+) Mbits\/sec'
 
 
-class intersection(Topo):
+class Intersection(Topo):
     """
     An "intersection" of switches. Topology consists of M hosts and N central
     switches. Each host has its own switch, and each central switch is
@@ -53,23 +53,23 @@ class intersection(Topo):
                 ):
                     if source == dest:
                         continue
-                    # Flow route for source switch >> center
-                    add_flow_route(
+                    # Flow tunnel for source switch >> center
+                    add_flow_tunnel(
                         net=net,
                         switch_num=source,
                         out_switch=cswitch,
                         from_host=source,
                         to_host=dest,
-                        route_num=cswitch - self.num_hosts
+                        tunnel_num=cswitch - self.num_hosts
                     )
-                    # Flow route for center switch >> dest
-                    add_flow_route(
+                    # Flow tunnel for center switch >> dest
+                    add_flow_tunnel(
                         net=net,
                         switch_num=cswitch,
                         out_switch=dest,
                         from_host=source,
                         to_host=dest,
-                        route_num=cswitch - self.num_hosts
+                        tunnel_num=cswitch - self.num_hosts
                     )
 
         # Add default drop rule to all but 1 central switch to avoid broadcast
@@ -82,11 +82,11 @@ class intersection(Topo):
             print(cmd)
             os.system(cmd)
 
-    def mod_ports(self, net: Mininet) -> None:
-        """ Modifies ports for all hosts in this topology"""
+    def weight_tunnels(self, net: Mininet) -> None:
+        """ Weights tunnels for all hosts in this topology"""
         for i in range(self.num_hosts):
-            mod_iperf_ports(net=net, host_num=i)
-            set_route_weights(
+            weight_tunnels(net=net, host_num=i)
+            set_tunnel_weights(
                 i, [[1] * self.num_central_switches] * (self.num_hosts - 1)
             )
         time.sleep(1)
@@ -170,20 +170,20 @@ def bw_test():
         with open(file, 'a') as f:
             f.write(f'\n{i}')
         # Run test for modded/unmodded
-        for mod_ports in [1, 0]:
+        for weight_tunnels in [1, 0]:
             # Build topo
-            topo = intersection(i, 3)
+            topo = Intersection(i, 3)
             net = Mininet(topo)
             net.start()
             topo.add_flows(net)
-            if mod_ports:
-                topo.mod_ports(net)
+            if weight_tunnels:
+                topo.weight_tunnels(net)
             # Run iperfs
             topo.run_iperfs(
                 net,
                 out_dir='./iperf_results',
                 iperf_duration=30,
-                bw=f'{test_bw[mod_ports]}M'
+                bw=f'{test_bw[weight_tunnels]}M'
             )
             for j in range(40, -1, -1):
                 print(j)
@@ -194,7 +194,7 @@ def bw_test():
             net.stop()
             try:
                 avg_bw, num_passed = topo.parse_output('./iperf_results', 30)
-                test_bw[mod_ports] = round(avg_bw + .5)
+                test_bw[weight_tunnels] = round(avg_bw + .5)
             except:
                 avg_bw, num_passed = -1, -1
             with open(file, 'a') as f:
@@ -206,11 +206,11 @@ def weight_test():
     Function for testing proper weighting. Check the number of packets that
     go through each flow for each leg!
     """
-    topo = intersection(3, 3)
+    topo = Intersection(3, 3)
     net = Mininet(topo)
     net.start()
     topo.add_flows(net)
-    topo.mod_ports(net)
+    topo.weight_tunnels(net)
 
     out = 'weight_results.txt'
 
@@ -220,7 +220,7 @@ def weight_test():
         [[290, 101, 875], [602, 580, 333]]
     )
     for i in range(3):
-        set_route_weights(i, weights[i])
+        set_tunnel_weights(i, weights[i])
     time.sleep(3)
     topo.run_iperfs(
         net, out_dir='./iperf_results', iperf_duration=60, bw='100M'
@@ -244,7 +244,7 @@ def weight_test():
         [[0, 0, 1], [1, 0, 0]],
     )
     for i in range(3):
-        set_route_weights(i, weights[i])
+        set_tunnel_weights(i, weights[i])
     time.sleep(10)
     with open(out, 'a') as f:
         f.write('\n' + '=' * 100 + '\nSecond leg\n' + '=' * 100 + '\n')
@@ -261,7 +261,7 @@ def weight_test():
         [[0, 1, 0], [0, 1, 0]],
     )
     for i in range(3):
-        set_route_weights(i, weights[i])
+        set_tunnel_weights(i, weights[i])
     time.sleep(10)
     with open(out, 'a') as f:
         f.write('\n' + '=' * 100 + '\nThird leg\n' + '=' * 100 + '\n')
