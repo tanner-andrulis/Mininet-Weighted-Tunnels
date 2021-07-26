@@ -4,19 +4,23 @@ install_dependencies:
 	sudo apt-get install iperf3
 
 build:
-	gcc -Wall -O3 -g -o mod_iperf_ports mod_iperf_ports.c -lnfnetlink -lnetfilter_queue -pthread
+	gcc -Wall -O3 -g -o weighted_tunnels weighted_tunnels.c -lnfnetlink -lnetfilter_queue -pthread
 
 clean:
 	rm flow_weights/*
 	rm iperf_results/*
 
 reset_ovs:
-	export PATH=$PATH:/usr/local/share/openvswitch/scripts
-	ovs-ctl stop
-	ovs-ctl start
-	ovs-ctl status
+	/usr/local/share/openvswitch/scripts/ovs-ctl stop
+	/usr/local/share/openvswitch/scripts/ovs-ctl start
+	/usr/local/share/openvswitch/scripts/ovs-ctl status
+
+run_example:
+	mn -c
+	python3 example.py
 
 run_tester:
+	mn -c
 	python3 tester.py
 
 # Fixes some issues I was having with xauthority and launching Xterms.
