@@ -276,8 +276,8 @@ def get_iperf_commands(
                      f'-p {serverport} ' \
                      f'{iperf_server_args}'
     if daemon:
-        client_cmd += ' & '
-        server_cmd += ' & '
+        client_command += ' & '
+        server_command += ' & '
     return client_command, server_command
 
 
