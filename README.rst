@@ -81,7 +81,7 @@ Let's say we would like a flow from host 2 to host 3. We calculate the source po
 We calculate the destination port as
   source # + receive_start_port = 2 + 10000 = 10002
 
-We can now launch an iperf client and server with source port 2048 and destination port 10002. After passing through the daemon, packets on the network will have source port 2048 + tunnel_number depending on selected tunnel. Packets travelling back from the server to the client will all have source port 10002 destination port 2048.
+We can now launch an iperf client from host 2 port 2048 and server host 3 port 10002. After leaving the client and passing through the daemon, packets on the network will have source port 2048 + tunnel_number depending on selected tunnel. Packets travelling back from the server to the client will all have source port 10002 destination port 2048.
 
 All numbering is handled automatically by the Python script. The get_iperf_ports function is available to calculate necessary ports for any sender/receiver combination.
 
