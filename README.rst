@@ -7,7 +7,7 @@ By dividing single flows over multiple tunnels, Weighted Tunnels allows research
 
 The Weighted Ports daemon runs on Mininet hosts. It intercepts and mangles packets to send them on different tunenls. For easy integration with Mininet, a helpful Python script is included that manages the Daemon and sets up tunnels in a Mininet environment.
 
-The Python script for Weighted Tunnels works with Python 3.8, Mininet 2.3.0, Open vSwitch OpenFlow 15, and iperf3.
+The Python script for Weighted Tunnels works with Python 3.8 [#python]_, Mininet 2.3.0 [#mininet]_, Open vSwitch OpenFlow 15 [#ovs]_, and iperf3 [#iperf3]_.
 
 How Weighted Tunnels Works
 ==========================
@@ -33,8 +33,8 @@ Running Weighted Tunnels requires a daemon on all hosts. This is easy with the P
     net.start()
 
     # Add flow rules to connect hosts
-    weighted_tunnels.connect_host(net, 0)
-    weighted_tunnels.connect_host(net, 1)
+    weighted_tunnels.add_flow_to_host(net, 0)
+    weighted_tunnels.add_flow_to_host(net, 1)
 
     # Add flow rules for tunnels
     # h0 -> h1
@@ -86,6 +86,12 @@ We can now launch an iperf client and server with source port 2048 and destinati
 All numbering is handled automatically by the Python script. The get_iperf_ports function is available to calculate necessary ports for any sender/receiver combination.
 
 
+Performance
+===========
+
+Weighted Tunnels is able to provide multi-tunnel routing with little overhead. For large networks, there is a very small overhead increase in CPU usage on test systems. The network and flows themselves, however, contribute the vast majority of all CPU usage.
+
+
 Code
 ====
 
@@ -121,3 +127,39 @@ Running
   make reset_ovs # Only needed on system startup!
   make run_example
   make run_tester
+
+  Useful References
+  =================
+  All sites accessed 7/29/2021
+  
+  .. [#ovs] Website at https://www.openvswitch.org/ and Github at https://github.com/openvswitch/ovs
+    
+  .. [#mininet] http://mininet.org/
+  
+  .. [#python] https://www.python.org/downloads/
+  
+  .. [#iperf3] https://iperf.fr/iperf-download.php
+
+License
+=======
+Weighted Tunnels is licensed under the open source MIT License
+
+Copyright (c) 2021 Tanner Andrulis
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
