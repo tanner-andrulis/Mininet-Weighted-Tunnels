@@ -124,7 +124,6 @@ Running
 .. code-block:: bash
 
   sudo -s
-  make reset_ovs # Only needed on system startup!
   make run_example
   make run_tester
 
