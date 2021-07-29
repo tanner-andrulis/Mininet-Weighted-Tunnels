@@ -93,8 +93,8 @@ def run_test():
     net.start()
 
     # Add flow rules to connect hosts
-    weighted_tunnels.connect_host(net, 0)
-    weighted_tunnels.connect_host(net, 1)
+    weighted_tunnels.add_flow_to_host(net, 0)
+    weighted_tunnels.add_flow_to_host(net, 1)
 
     # Add flow rules for tunnels
     # h0 -> h1

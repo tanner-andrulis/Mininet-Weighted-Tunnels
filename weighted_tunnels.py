@@ -117,7 +117,7 @@ def add_flow(
     os.system(cmd)
 
 
-def connect_host(
+def add_flow_to_host(
     net: Mininet,
     host_num: int,
     switch_num: int = None
@@ -178,6 +178,8 @@ def weight_tunnels(
         recv_start_port: int = DEFAULT_RECV_START_PORT,
         send_start_port: int = DEFAULT_SEND_START_PORT,
         weight_path: str = None,
+        stdout: str = '/dev/null',
+        stderr: str = '/dev/null',
 ) -> None:
     """
     Mangles source/destination ports of UDP packets being exchanged by
@@ -193,6 +195,7 @@ def weight_tunnels(
         recv_start_port: Start port for receiver iperf sessions
         send_start_port: Start port for sender iperf sessions
         weight_path: Path to the weight file used by this port mod session.
+
     """
     assert_start_ports(recv_start_port, send_start_port)
     if weight_path is None:
@@ -219,12 +222,12 @@ def weight_tunnels(
               f'-v > iperf_results/d{host_num}.txt &'
     else:
         cmd = f'./weighted_tunnels ' \
-              f'-i {ip_to_int(ip)} ' \
-              f'-w {weight_path} ' \
-              f'-r {recv_start_port} ' \
-              f'-s {send_start_port} ' \
-              f'-q 58 ' \
-              f'> /dev/null 2>&1  &'
+                f'-i {ip_to_int(ip)} ' \
+                f'-w {weight_path} ' \
+                f'-r {recv_start_port} ' \
+                f'-s {send_start_port} ' \
+                f'-q 58 ' \
+                f'1> {stdout} 2> {stderr} & '
 
     host.cmd(cmd)
     print(cmd)
@@ -242,7 +245,8 @@ def get_iperf_commands(
     server_num: int,
     iperf_client_args: str = '',
     iperf_server_args: str = '',
-    server_switch_num: int = None
+    server_switch_num: int = None,
+    daemon: bool = True
 ) -> str:
     """
     Runs iperf between this client and server. Returns client and server
@@ -259,6 +263,7 @@ def get_iperf_commands(
         server_switch_num:
             Switch the server is connected to. If not set, assumed to be
             the same switch number as the client.
+        daemon: True to add "&" at end of command for daemon running
     """
     clientport, serverport = get_iperf_ports(client_num, server_num)
     server_ip = get_ip(net, server_num, server_switch_num)
@@ -266,10 +271,13 @@ def get_iperf_commands(
                      f'-p {serverport} ' \
                      f'--cport {clientport} ' \
                      f'-u -4 ' \
-                     f'{iperf_client_args} & '
+                     f'{iperf_client_args}'
     server_command = f'iperf3 -s -4 ' \
                      f'-p {serverport} ' \
-                     f'{iperf_server_args} & '
+                     f'{iperf_server_args}'
+    if daemon:
+        client_cmd += ' & '
+        server_cmd += ' & '
     return client_command, server_command
 
 

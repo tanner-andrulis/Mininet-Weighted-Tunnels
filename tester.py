@@ -3,7 +3,7 @@
 from mininet.net import Mininet
 from mininet.topo import Topo
 from mininet.log import setLogLevel
-from weighted_tunnels import add_flow_tunnel, get_iperf_commands, connect_host
+from weighted_tunnels import add_flow_tunnel, get_iperf_commands, add_flow_to_host
 from weighted_tunnels import weight_tunnels, set_tunnel_weights
 import os
 import time
@@ -43,7 +43,7 @@ class Intersection(Topo):
         """ Adds flows to this topology """
         # Connect hosts
         for i in range(self.num_hosts):
-            connect_host(net=net, host_num=i)
+            add_flow_to_host(net=net, host_num=i)
 
         # Stress test for number of flow rules >:)
         for source in range(self.num_hosts):
