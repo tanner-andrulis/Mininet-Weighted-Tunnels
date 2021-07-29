@@ -36,16 +36,16 @@ Running Weighted Tunnels requires a daemon on all hosts. This is easy with the P
     weighted_tunnels.add_flow_to_host(net, 0)
     weighted_tunnels.add_flow_to_host(net, 1)
 
-    # Add flow rules for tunnels
-    # h0 -> h1
-    weighted_tunnels.add_flow(net, switch_num=2, out_switch=1, from_host=0, to_host=1)
-    weighted_tunnels.add_flow(net, switch_num=3, out_switch=1, from_host=0, to_host=1)
-    # Two tunnels
+    # h0 -> h1 has two tunnels:
+    # Tunnel 0: s0 -> s2 -> s1
     weighted_tunnels.add_flow_tunnel(net, switch_num=0, out_switch=2, from_host=0, to_host=1, tunnel_num=0)
+    weighted_tunnels.add_flow_tunnel(net, switch_num=2, out_switch=1, from_host=0, to_host=1, tunnel_num=0)
+    # Tunnel 1: s0 -> s3 -> s1
     weighted_tunnels.add_flow_tunnel(net, switch_num=0, out_switch=3, from_host=0, to_host=1, tunnel_num=1)
+    weighted_tunnels.add_flow_tunnel(net, switch_num=3, out_switch=1, from_host=0, to_host=1, tunnel_num=1)
 
-    # h1 -> h0
-    # All packets travel s1 -> s2 ->s0
+    # h1 -> h0 has one tunnel, so we can just do flows:
+    # All packets travel s1 -> s2 -> s0
     weighted_tunnels.add_flow(net, switch_num=2, out_switch=0, from_host=1, to_host=0)
     weighted_tunnels.add_flow(net, switch_num=3, out_switch=0, from_host=1, to_host=0)
     weighted_tunnels.add_flow(net, switch_num=1, out_switch=2, from_host=1, to_host=0)
