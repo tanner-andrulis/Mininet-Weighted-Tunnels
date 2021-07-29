@@ -10,11 +10,6 @@ clean:
 	rm flow_weights/*
 	rm iperf_results/*
 
-reset_ovs:
-	/usr/local/share/openvswitch/scripts/ovs-ctl stop
-	/usr/local/share/openvswitch/scripts/ovs-ctl start
-	/usr/local/share/openvswitch/scripts/ovs-ctl status
-
 run_example:
 	mn -c
 	python3 example.py
