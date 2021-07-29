@@ -128,9 +128,11 @@ Running
   make run_example
   make run_tester
 
-  Useful References
-  =================
-  All sites accessed 7/29/2021
+
+Useful References
+=================
+
+All sites accessed 7/29/2021
   
   .. [#ovs] Website at https://www.openvswitch.org/ and Github at https://github.com/openvswitch/ovs
     
