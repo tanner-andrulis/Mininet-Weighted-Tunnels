@@ -4,7 +4,7 @@ from mininet.net import Mininet
 from mininet.topo import Topo
 from mininet.log import setLogLevel
 from weighted_tunnels import add_flow_tunnel, get_iperf_commands, add_flow_to_host
-from weighted_tunnels import weight_tunnels, set_tunnel_weights
+from weighted_tunnels import start_daemon, set_tunnel_weights
 import os
 import time
 import re
