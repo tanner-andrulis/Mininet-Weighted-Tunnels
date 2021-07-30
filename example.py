@@ -111,8 +111,8 @@ def run_test():
     weighted_tunnels.add_flow(net, switch_num=1, out_switch=2, from_host=1, to_host=0)
 
     # Weight tunnels
-    weighted_tunnels.weight_tunnels(net, 0)
-    weighted_tunnels.weight_tunnels(net, 1)
+    weighted_tunnels.start_daemon(net, 0)
+    weighted_tunnels.start_daemon(net, 1)
     weighted_tunnels.set_tunnel_weights(host_num=0, weights=[[.3, .7]])
 
     # Add default drop rule to s3 so we don't have broadcast storms
