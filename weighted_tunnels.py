@@ -247,7 +247,7 @@ def get_iperf_commands(
     iperf_server_args: str = '',
     server_switch_num: int = None,
     daemon: bool = True
-) -> str:
+) -> Tuple[str, str]:
     """
     Runs iperf between this client and server. Returns client and server
     with commands running. Use rval[0].waitOutput() for client output and
