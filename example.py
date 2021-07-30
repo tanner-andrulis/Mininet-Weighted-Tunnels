@@ -132,9 +132,9 @@ def run_test():
     net.get('h0').cmd(client_cmd)
 
     time.sleep(15)
-    os.system('ovs-ofctl dump-flows s0 >> example_out.txt')
+    os.system('ovs-ofctl dump-flows s0 | grep -v n_packets=0 >> example_out.txt')
     net.stop()
-
+    print('\n\nCheck out the highest two n_packets=X values in example_out.txt! One should be 7/3 times the other.\n\n')
 
 if __name__ == '__main__':
     run_test()
