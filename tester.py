@@ -82,10 +82,10 @@ class Intersection(Topo):
             print(cmd)
             os.system(cmd)
 
-    def weight_tunnels(self, net: Mininet) -> None:
+    def start_daemon(self, net: Mininet) -> None:
         """ Weights tunnels for all hosts in this topology"""
         for i in range(self.num_hosts):
-            weight_tunnels(net=net, host_num=i)
+            start_daemon(net=net, host_num=i)
             set_tunnel_weights(
                 i, [[1] * self.num_central_switches] * (self.num_hosts - 1)
             )
@@ -179,7 +179,7 @@ def bw_test():
             net.start()
             topo.add_flows(net)
             if weight_tunnels:
-                topo.weight_tunnels(net)
+                topo.start_daemon(net)
             # Run iperfs
             topo.run_iperfs(
                 net,
@@ -212,7 +212,7 @@ def weight_test():
     net = Mininet(topo)
     net.start()
     topo.add_flows(net)
-    topo.weight_tunnels(net)
+    topo.start_daemon(net)
 
     out = 'weight_results.txt'
 
