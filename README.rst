@@ -170,12 +170,12 @@ All sites accessed 7/29/2021
 Contact
 =======
 
-Questions, comments, concerns? Email Tanner Andrulis at andruils@mit.edu
+This work was completed in the Purdue Internet Systems Lab by Tanner Andrulis in collaboration with Chuan Jiang and Sanjay Rao.
 
+Questions, comments, concerns? Email Tanner Andrulis at andruils@mit.edu
 
 License
 =======
-This work was completed by Tanner Andrulis in collaboration with Chuan Jiang and Sanjay Rao under the Purdue Internet Systems Lab.
 
 Weighted Tunnels is licensed under the open source MIT License
 
