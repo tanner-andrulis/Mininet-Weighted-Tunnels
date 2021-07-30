@@ -172,7 +172,7 @@ Contact
 
 This work was completed in the Purdue Internet Systems Lab by Tanner Andrulis in collaboration with Chuan Jiang and Sanjay Rao.
 
-Questions, comments, concerns? Email Tanner Andrulis at andruils@mit.edu
+Questions, comments, concerns? Email Tanner Andrulis at Andrulis@mit.edu
 
 License
 =======
