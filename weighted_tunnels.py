@@ -171,7 +171,7 @@ def get_iperf_ports(
     return client_port, server_port
 
 
-def weight_tunnels(
+def start_daemon(
         net: Mininet,
         host_num: int,
         switch_num: int = None,
